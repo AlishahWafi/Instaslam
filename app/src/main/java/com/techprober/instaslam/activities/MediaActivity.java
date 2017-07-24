@@ -27,6 +27,7 @@ import android.widget.ImageView;
 import com.techprober.instaslam.R;
 import com.techprober.instaslam.model.InstaImage;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
 /**
@@ -274,7 +275,7 @@ public class MediaActivity extends AppCompatActivity {
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    selectedImage.setImageDrawable(vholder.image.getDrawable());
+                    selectedImage.setImageDrawable(vholder.imageView.getDrawable());
                 }
             });
         }
@@ -287,17 +288,43 @@ public class MediaActivity extends AppCompatActivity {
 
     public class ImageViewHolder extends RecyclerView.ViewHolder {
 
-        private ImageView image;
+        private ImageView imageView;
 
         public ImageViewHolder(View itemView) {
             super(itemView);
 
-            image = (ImageView)itemView.findViewById(R.id.image_thumb);
+            imageView = (ImageView)itemView.findViewById(R.id.image_thumb);
         }
 
         public void updateUI(InstaImage image) {
-            //grab real images from the URL
-            this.image.setImageBitmap(decodeURI(image.getImageResourceUrl().getPath()));
+
+            DecodeBitmap task = new DecodeBitmap(imageView, image);
+            task.execute();
+        }
+    }
+
+    class DecodeBitmap extends AsyncTask<Void, Void, Bitmap>{
+        private final WeakReference<ImageView> mImageViewWeakReference;
+        private InstaImage image;
+
+        public DecodeBitmap(ImageView imageView, InstaImage image) {
+            this.mImageViewWeakReference = new WeakReference<ImageView>(imageView);
+            this.image = image;
+        }
+
+        @Override
+        protected Bitmap doInBackground(Void... params) {
+            return decodeURI(image.getImageResourceUrl().getPath());
+        }
+
+        @Override
+        protected void onPostExecute(Bitmap bitmap) {
+            super.onPostExecute(bitmap);
+            final ImageView img = mImageViewWeakReference.get();
+
+            if(img != null){
+                img.setImageBitmap(bitmap);
+            }
         }
     }
 
